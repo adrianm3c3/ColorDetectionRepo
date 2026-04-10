@@ -12,45 +12,28 @@ except ImportError:
     YOLO = None
 
 
-# =========================
-# Config
-# =========================
-
 HTTP_HOST = "0.0.0.0"
 HTTP_PORT = 2011
 
 CAMERA_INDEX = 1
 
-# Where this camera node will notify your orchestrator
+
 MADSCI_TRIGGER_URL = "http://127.0.0.1:2020/events/vision"
 
-# YOLO model:
-# Good default: small COCO-pretrained model
-# If you specifically want YOLOv8, change to "yolov8n.pt"
+
 YOLO_MODEL_NAME = "yolo11n.pt"
 
-# Turn general object detection on/off
+
 ENABLE_OBJECT_DETECTION = True
 
-# Run YOLO every N frames to reduce load
 YOLO_EVERY_N_FRAMES = 3
-
-# Confidence threshold for general object detection
 YOLO_CONFIDENCE = 0.45
-
-# Minimum contour area for color detection
 MIN_COLOR_AREA = 500
 
-# Cooldown so we do not spam the orchestrator
-EVENT_COOLDOWN_SECONDS = 2.0
 
-# If True, only known colors below are checked
+EVENT_COOLDOWN_SECONDS = 2.0
 ENABLE_COLOR_DETECTION = True
 
-
-# =========================
-# Shared state
-# =========================
 
 class SharedState:
     def __init__(self):
@@ -79,11 +62,6 @@ class SharedState:
 
 
 state = SharedState()
-
-
-# =========================
-# HTTP handler
-# =========================
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, data, status=200):
@@ -123,9 +101,7 @@ class Handler(BaseHTTPRequestHandler):
         return
 
 
-# =========================
-# Notify orchestrator
-# =========================
+#notify orchestrator
 
 def notify_madsci(event_type, colors, color_boxes, objects, object_boxes):
     payload = {
@@ -159,9 +135,7 @@ def notify_madsci(event_type, colors, color_boxes, objects, object_boxes):
     state.last_trigger_time = time.time()
 
 
-# =========================
-# Color detection helpers
-# =========================
+#color detection helpers
 
 def get_color_ranges():
     """
@@ -265,10 +239,7 @@ def detect_colors(frame):
     colors_detected = sorted(list(set(colors_detected)))
     return colors_detected, color_boxes
 
-
-# =========================
-# Object detection helpers
-# =========================
+#objection detection helpers
 
 def load_yolo_model():
     if not ENABLE_OBJECT_DETECTION:
@@ -354,9 +325,7 @@ def detect_objects_yolo(model, frame):
     return objects_detected, object_boxes
 
 
-# =========================
-# Main camera loop
-# =========================
+#main camera loop
 
 def camera_loop(camera_index=CAMERA_INDEX):
     cap = cv2.VideoCapture(camera_index)
@@ -420,7 +389,7 @@ def camera_loop(camera_index=CAMERA_INDEX):
             "object_count": len(object_boxes)
         }
 
-        # Decide whether to notify orchestrator
+        # decide whether to notify orchestrator
         should_notify = (len(colors_detected) > 0) or (len(objects_detected) > 0)
 
         if should_notify:
@@ -447,9 +416,7 @@ def camera_loop(camera_index=CAMERA_INDEX):
     print("Camera loop stopped")
 
 
-# =========================
-# HTTP server
-# =========================
+#http server
 
 def run_http_server():
     server = HTTPServer((HTTP_HOST, HTTP_PORT), Handler)
@@ -457,9 +424,7 @@ def run_http_server():
     server.serve_forever()
 
 
-# =========================
-# Entry
-# =========================
+#entry
 
 if __name__ == "__main__":
     camera_thread = threading.Thread(target=camera_loop, daemon=True)

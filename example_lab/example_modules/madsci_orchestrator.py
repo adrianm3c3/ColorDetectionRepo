@@ -5,12 +5,13 @@ import requests
 import os
 import time
 import threading
+from pathlib import Path
+
+
 
 app = FastAPI()
 
-# =========================
-# CONFIG
-# =========================
+
 
 OT2_SERVER_BASE = "http://169.254.19.251:31950"
 OT2_HEADERS = {
@@ -23,7 +24,7 @@ ENABLE_X3 = True
 HOLD_OFF_SECONDS = 15
 POST_RUN_COOLDOWN_SECONDS = 10
 
-# Wait this long after color-only detection before allowing execution
+
 COLOR_OBJECT_WAIT_SECONDS = 2.5
 
 EVENT_PRIORITY = [
@@ -37,20 +38,24 @@ EVENT_PRIORITY = [
     "green_detected",
 ]
 
+
+
+
+BASE_DIR = Path(__file__).resolve().parent
+PROTOCOL_DIR = BASE_DIR / "protocols"
+
 PROTOCOL_MAP = {
-    "orange_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\orange_protocol.py",
-    "red_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\red_protocol.py",
-    "yellow_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\yellow_protocol.py",
-    "purple_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\purple_protocol.py",
-    "blue_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\blue_protocol.py",
-    "green_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\green_protocol.py",
-    "bottle_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\bottle_protocol.py",
-    "person_detected": r"C:\Users\12102\MADSCi\example_lab\example_modules\protocols\person_protocol.py",
+    "orange_detected": PROTOCOL_DIR / "orange_protocol.py",
+    "red_detected": PROTOCOL_DIR / "red_protocol.py",
+    "yellow_detected": PROTOCOL_DIR / "yellow_protocol.py",
+    "purple_detected": PROTOCOL_DIR / "purple_protocol.py",
+    "blue_detected": PROTOCOL_DIR / "blue_protocol.py",
+    "green_detected": PROTOCOL_DIR / "green_protocol.py",
+    "bottle_detected": PROTOCOL_DIR / "bottle_protocol.py",
+    "person_detected": PROTOCOL_DIR / "person_protocol.py",
 }
 
-# =========================
-# REQUEST MODELS
-# =========================
+
 
 class VisionEventPayload(BaseModel):
     event: str = "vision_detected"
@@ -68,9 +73,7 @@ class RunEventPayload(BaseModel):
     event: str
 
 
-# =========================
-# SHARED STATE
-# =========================
+
 
 execution_lock = threading.Lock()
 
@@ -93,7 +96,6 @@ state = {
     "last_selected_event": None,
     "last_x3_action": None,
 
-    # Pending color window state
     "pending_color_event": None,
     "pending_color_started_at": None,
     "pending_color_expires_at": None,
@@ -103,9 +105,7 @@ state = {
 }
 
 
-# =========================
-# DEBUG HELPERS
-# =========================
+
 
 def debug(msg: str):
     ts = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -166,9 +166,6 @@ def hold_off_response(reason: str, hold_seconds: int | None = None) -> dict:
     }
 
 
-# =========================
-# ROUTING HELPERS
-# =========================
 
 def normalize_label(label: str) -> str:
     return label.strip().lower().replace(" ", "_")
@@ -268,9 +265,7 @@ def pending_color_expired() -> bool:
     return now_ts() >= expires_at
 
 
-# =========================
-# OT-2 HELPERS
-# =========================
+
 
 def upload_protocol_to_ot2(protocol_path: str) -> str:
     debug(f"Uploading protocol to OT-2: {protocol_path}")
@@ -420,9 +415,6 @@ def wait_for_run_completion(run_id: str, poll_seconds: int = 2, timeout_seconds:
         time.sleep(poll_seconds)
 
 
-# =========================
-# X3 HELPERS
-# =========================
 
 def notify_x3_action(action_name: str) -> dict:
     url = f"{X3_SERVER_BASE}/actions/{action_name}"
@@ -449,9 +441,7 @@ def notify_x3_action(action_name: str) -> dict:
         return result
 
 
-# =========================
-# CORE EXECUTION
-# =========================
+
 
 def execute_event(event_name: str, original_payload: dict | None = None, x3_action: str | None = None) -> dict:
     debug("=" * 80)
@@ -573,15 +563,10 @@ def execute_event(event_name: str, original_payload: dict | None = None, x3_acti
         debug("=" * 80)
 
 
-# =========================
-# PENDING COLOR DECISION LOGIC
-# =========================
+#color detection logic
 
 def maybe_execute_pending_color() -> Optional[dict]:
-    """
-    If a color-only event has been waiting long enough and no object
-    was seen during the wait window, execute it now.
-    """
+   
     if state["pending_color_event"] is None:
         return None
 
@@ -596,7 +581,7 @@ def maybe_execute_pending_color() -> Optional[dict]:
             "object_seen_during_window": state["pending_object_seen_during_window"]
         }
 
-    # Window expired
+    
     pending_event = state["pending_color_event"]
     pending_payload = state["pending_color_payload"]
     pending_colors = state["pending_color_list"]
@@ -630,9 +615,6 @@ def maybe_execute_pending_color() -> Optional[dict]:
     )
 
 
-# =========================
-# ROUTES
-# =========================
 
 @app.get("/health")
 def health():
@@ -676,7 +658,6 @@ def vision_event(payload: VisionEventPayload):
     state["last_input"] = payload_dict
     state["last_time"] = now_ts()
 
-    # First, if there is already a pending color window, handle it.
     if state["pending_color_event"] is not None:
         if objects:
             state["pending_object_seen_during_window"] = True
@@ -715,8 +696,7 @@ def vision_event(payload: VisionEventPayload):
             "x3_action": None
         }
 
-    # Rule 1:
-    # If both object and color are detected in the same payload, do NOT execute.
+    
     if colors and objects:
         debug(
             f"Blocked execution because color and object were both detected -> "
@@ -734,8 +714,7 @@ def vision_event(payload: VisionEventPayload):
         state["last_result"] = result
         return result
 
-    # Rule 2:
-    # If object only is detected, do NOT execute anything.
+    
     if objects and not colors:
         debug(f"Object-only detection -> blocking protocol execution, objects={objects}")
 
@@ -749,8 +728,7 @@ def vision_event(payload: VisionEventPayload):
         state["last_result"] = result
         return result
 
-    # Rule 3:
-    # If color only is detected, start a grace window and wait for possible object detection.
+    
     if colors and not objects:
         selected_event = select_best_event(candidate_events)
         state["last_selected_event"] = selected_event
@@ -779,7 +757,7 @@ def vision_event(payload: VisionEventPayload):
             "seconds_remaining": COLOR_OBJECT_WAIT_SECONDS
         }
 
-    # Fallback
+
     debug("Reached fallback path -> ignoring")
     return {
         "status": "ignored",
