@@ -1,4 +1,5 @@
-FROM python:3.12
+#FROM python:3.12
+FROM python:3.11-slim
 LABEL org.opencontainers.image.source=https://github.com/AD-SDL/MADSci/
 LABEL org.opencontainers.image.description="The Modular Autonomous Discovery for Science (MADSci) toolkit's base docker image."
 LABEL org.opencontainers.image.licenses=MIT

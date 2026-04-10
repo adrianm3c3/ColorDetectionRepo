@@ -1,3 +1,4 @@
+FROM python:3.11-slim
 ARG BASE_IMAGE=ghcr.io/ad-sdl/madsci:latest
 FROM ${BASE_IMAGE}
 LABEL org.opencontainers.image.source=https://github.com/AD-SDL/MADSci/
