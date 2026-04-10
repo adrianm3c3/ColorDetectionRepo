@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # The Modular Autonomous Discovery for Science (MADSci) Framework
 
 <!-- GitHub Actions Status Badges -->
@@ -222,3 +223,6 @@ For VS Code users, use the included [.devcontainer](./.devcontainer) for instant
 - Automatic dependency installation
 - Pre-configured development environment
 - Docker services ready to run
+=======
+# ColorDetectionRepo
+>>>>>>> 4c7ccee93c050be46eeed953f701cf95390f6d50
