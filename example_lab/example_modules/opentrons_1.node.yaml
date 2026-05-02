@@ -1,0 +1,9 @@
+  opentrons_1:
+    <<: *madsci-service
+    container_name: opentrons_1
+    environment:
+      - NODE_DEFINITION=node_definitions/opentrons_1.node.yaml
+      - NODE_URL=http://169.254.19.251:2006
+    command: ["python", "/home/madsci/example_lab/example_modules/opentrons.py"]
+    depends_on:
+      - workcell_manager

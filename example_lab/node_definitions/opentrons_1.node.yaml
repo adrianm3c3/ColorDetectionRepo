@@ -1,0 +1,13 @@
+name: opentrons_1
+description: OT-2 pipetting robot
+type: liquidhandler
+manufacturer: Opentrons
+model: OT-2
+driver: example_modules/opentrons.py
+network:
+  url: http://169.254.19.251:2006
+  port: 2006
+capabilities:
+  - pipette_control
+  - deck_operations
+  -control_operations
