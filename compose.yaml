@@ -188,6 +188,7 @@ services:
       - NODE_URL=http://localhost:2004
     command: python example_modules/advanced_example_module.py
 
+<<<<<<< HEAD
   opentrons_1:
     <<: *madsci-service
     container_name: opentrons_1
@@ -199,3 +200,31 @@ services:
       - workcell_manager
 
 
+=======
+  ot2_node:
+    image: ghcr.io/ad-sdl/madsci:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - ghcr.io/ad-sdl/madsci:latest
+        - ghcr.io/ad-sdl/madsci:dev
+    container_name: ot2_node
+    environment:
+      USER_ID: ${USER_ID:-1000}
+      GROUP_ID: ${GROUP_ID:-1000}
+      NODE_DEFINITION: node_definitions/ot2.node.yaml
+      NODE_URL: http://localhost:2010
+    env_file:
+      - .env
+    volumes:
+      - ${REPO_PATH:-.}/example_lab:/home/madsci/example_lab
+      - ${REPO_PATH:-.}/.madsci:/home/madsci/.madsci:rw
+      - ${REPO_PATH:-.}/src:/home/madsci/MADSci/src
+    entrypoint: ["/bin/bash", "-c", "chmod -R 777 /home/madsci/.madsci 2>/dev/null || true && exec \"$@\"", "--"]
+    restart: unless-stopped
+    working_dir: /home/madsci/example_lab
+    command: python example_modules/ot2_node.py
+    ports:
+      - "2010:2010"
+>>>>>>> 49fd936d1468dd6a408b22b85e727a4e97e9074e
